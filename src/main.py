@@ -6,16 +6,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.utils.db import init_mongodb
 from src.ai.gemini import run_gemini_chat
 from src.ai.pyd_ai import run_gemini_chat as gemini_chat
-from src.models.user import User
-from src.models.user_settings import UserSettings
-from src.models.token import BlacklistedToken
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Server running on port 8000")
     # Initialize MongoDB connection
-    db = await init_mongodb("ai-multimedia")
+    await init_mongodb("ai-multimedia")
     yield
     print("Server stopped")
 
@@ -23,11 +20,9 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 # Allow connections from the frontend development server
-origins = ["https://ai-multimedia-frontend.onrender.com/"]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["https://ai-multimedia-frontend.onrender.com/"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
