@@ -231,11 +231,10 @@ def tag_files(file: dict, tags: list):
             print(f"APIError: {e.message}")
             raise
 
-    ai_response: AIResponse = response.parsed
-    return ai_response
-
 
 def ocr_text_extraction(file: dict):
+    max_retries = 3
+    backoff = 1
     media_response = httpx.get(file["file_url"])
     system_prompt = [
         dedent(f"""
@@ -249,38 +248,7 @@ def ocr_text_extraction(file: dict):
         data=content,
         mime_type=f"{file['file_type']}/{file['mime_type'] if file['mime_type'] != 'jpg' else 'jpeg'}",
     )
-    response = client.models.generate_content(
-        model=GEMINI_MODEL,
-        contents=[
-            *system_prompt,
-            data,
-        ],
-        config={
-            "response_mime_type": "application/json",
-            "response_schema": AIOCRResponse,
-        },
-    )
-
-    ai_response: AIOCRResponse = response.parsed
-    return ai_response
-
-
-def object_scene_recognition(file: dict):
-    media_response = httpx.get(file["file_url"])
-    system_prompt = [
-        dedent(f"""
-                SYSTEM PROMPT: You are a professional at identifying objects and scenes in {file['mime_type'] if file['mime_type'] != 'jpg' else 'jpeg'}s. Your work is to identify objects and describe scenes in the file below. Do you understand?
-                """),
-        """MODEL: Understood.""",
-    ]
-    content = media_response.content
-    print(f"File Url {file['file_url']}")
-    data = types.Part.from_bytes(
-        data=content,
-        mime_type=f"{file['file_type']}/{file['mime_type'] if file['mime_type'] != 'jpg' else 'jpeg'}",
-    )
-    max_retries = 3
-    backoff = 1
+    
     for attempt in range(1, max_retries + 1):
         try:
             response = client.models.generate_content(
@@ -310,23 +278,58 @@ def object_scene_recognition(file: dict):
         except APIError as e:
             print(f"APIError: {e.message}")
             raise
-    # response = client.models.generate_content(
-    #     model=GEMINI_MODEL,
-    #     contents=[
-    #         *system_prompt,
-    #         data,
-    #     ],
-    #     config={
-    #         "response_mime_type": "application/json",
-    #         "response_schema": AIOCRResponse,
-    #     },
-    # )
 
-    # ai_response: AIOCRResponse = response.parsed
-    # return ai_response
+
+def object_scene_recognition(file: dict):
+    max_retries = 3
+    backoff = 1
+    media_response = httpx.get(file["file_url"])
+    system_prompt = [
+        dedent(f"""
+                SYSTEM PROMPT: You are a professional at identifying objects and scenes in {file['mime_type'] if file['mime_type'] != 'jpg' else 'jpeg'}s. Your work is to identify objects and describe scenes in the file below. Do you understand?
+                """),
+        """MODEL: Understood.""",
+    ]
+    content = media_response.content
+    print(f"File Url {file['file_url']}")
+    data = types.Part.from_bytes(
+        data=content,
+        mime_type=f"{file['file_type']}/{file['mime_type'] if file['mime_type'] != 'jpg' else 'jpeg'}",
+    )
+    for attempt in range(1, max_retries + 1):
+        try:
+            response = client.models.generate_content(
+                model=MODELS[attempt - 1],
+                contents=[
+                    *system_prompt,
+                    data,
+                ],
+                config={
+                    "response_mime_type": "application/json",
+                    "response_schema": AIOCRResponse,
+                },
+            )
+            ai_response: AIOCRResponse = response.parsed
+            return ai_response
+        except ServerError as e:
+            print(f"Attempt {attempt} failed: {e}")
+            if attempt < max_retries:
+                print(
+                    f"ServerError on attempt {attempt}, Retrying in {backoff} seconds..."
+                )
+                time.sleep(backoff)
+                backoff *= 2
+            else:
+                print("All attempts failed. Exiting.")
+                raise
+        except APIError as e:
+            print(f"APIError: {e.message}")
+            raise
 
 
 def file_summarization(file: dict):
+    max_retries = 3
+    backoff = 1
     media_response = httpx.get(file["file_url"])
     system_prompt = [
         dedent(f"""
@@ -340,23 +343,41 @@ def file_summarization(file: dict):
         data=content,
         mime_type=f"{file['file_type']}/{file['mime_type'] if file['mime_type'] != 'jpg' else 'jpeg'}",
     )
-    response = client.models.generate_content(
-        model=GEMINI_MODEL,
-        contents=[
-            *system_prompt,
-            data,
-        ],
-        config={
-            "response_mime_type": "application/json",
-            "response_schema": AIOCRResponse,
-        },
-    )
-
-    ai_response: AIOCRResponse = response.parsed
-    return ai_response
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            response = client.models.generate_content(
+                model=MODELS[attempt - 1],
+                contents=[
+                    *system_prompt,
+                    data,
+                ],
+                config={
+                    "response_mime_type": "application/json",
+                    "response_schema": AIOCRResponse,
+                },
+            )
+            ai_response: AIOCRResponse = response.parsed
+            return ai_response
+        except ServerError as e:
+            print(f"Attempt {attempt} failed: {e}")
+            if attempt < max_retries:
+                print(
+                    f"ServerError on attempt {attempt}, Retrying in {backoff} seconds..."
+                )
+                time.sleep(backoff)
+                backoff *= 2
+            else:
+                print("All attempts failed. Exiting.")
+                raise
+        except APIError as e:
+            print(f"APIError: {e.message}")
+            raise
 
 
 def audio_transcription(file: dict):
+    max_retries = 3
+    backoff = 1
     media_response = httpx.get(file["file_url"])
     system_prompt = [
         dedent("""
@@ -370,23 +391,41 @@ def audio_transcription(file: dict):
         data=content,
         mime_type=f"{file['file_type']}/{file['mime_type'] if file['mime_type'] != 'jpg' else 'jpeg'}",
     )
-    response = client.models.generate_content(
-        model=GEMINI_MODEL,
-        contents=[
-            *system_prompt,
-            data,
-        ],
-        config={
-            "response_mime_type": "application/json",
-            "response_schema": AIOCRResponse,
-        },
-    )
-
-    ai_response: AIOCRResponse = response.parsed
-    return ai_response
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            response = client.models.generate_content(
+                model=MODELS[attempt - 1],
+                contents=[
+                    *system_prompt,
+                    data,
+                ],
+                config={
+                    "response_mime_type": "application/json",
+                    "response_schema": AIOCRResponse,
+                },
+            )
+            ai_response: AIOCRResponse = response.parsed
+            return ai_response
+        except ServerError as e:
+            print(f"Attempt {attempt} failed: {e}")
+            if attempt < max_retries:
+                print(
+                    f"ServerError on attempt {attempt}, Retrying in {backoff} seconds..."
+                )
+                time.sleep(backoff)
+                backoff *= 2
+            else:
+                print("All attempts failed. Exiting.")
+                raise
+        except APIError as e:
+            print(f"APIError: {e.message}")
+            raise
 
 
 def emotion_analysis(file: dict):
+    max_retries = 3
+    backoff = 1
     media_response = httpx.get(file["file_url"])
     system_prompt = [
         dedent("""
@@ -400,23 +439,41 @@ def emotion_analysis(file: dict):
         data=content,
         mime_type=f"{file['file_type']}/{file['mime_type'] if file['mime_type'] != 'jpg' else 'jpeg'}",
     )
-    response = client.models.generate_content(
-        model=GEMINI_MODEL,
-        contents=[
-            *system_prompt,
-            data,
-        ],
-        config={
-            "response_mime_type": "application/json",
-            "response_schema": AIOCRResponse,
-        },
-    )
-
-    ai_response: AIOCRResponse = response.parsed
-    return ai_response
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            response = client.models.generate_content(
+                model=MODELS[attempt - 1],
+                contents=[
+                    *system_prompt,
+                    data,
+                ],
+                config={
+                    "response_mime_type": "application/json",
+                    "response_schema": AIOCRResponse,
+                },
+            )
+            ai_response: AIOCRResponse = response.parsed
+            return ai_response
+        except ServerError as e:
+            print(f"Attempt {attempt} failed: {e}")
+            if attempt < max_retries:
+                print(
+                    f"ServerError on attempt {attempt}, Retrying in {backoff} seconds..."
+                )
+                time.sleep(backoff)
+                backoff *= 2
+            else:
+                print("All attempts failed. Exiting.")
+                raise
+        except APIError as e:
+            print(f"APIError: {e.message}")
+            raise
 
 
 def speaker_identification(file: dict):
+    max_retries = 3
+    backoff = 1
     media_response = httpx.get(file["file_url"])
     system_prompt = [
         dedent("""
@@ -430,20 +487,36 @@ def speaker_identification(file: dict):
         data=content,
         mime_type=f"{file['file_type']}/{file['mime_type'] if file['mime_type'] != 'jpg' else 'jpeg'}",
     )
-    response = client.models.generate_content(
-        model=GEMINI_MODEL,
-        contents=[
-            *system_prompt,
-            data,
-        ],
-        config={
-            "response_mime_type": "application/json",
-            "response_schema": AIOCRResponse,
-        },
-    )
-
-    ai_response: AIOCRResponse = response.parsed
-    return ai_response
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            response = client.models.generate_content(
+                model=MODELS[attempt - 1],
+                contents=[
+                    *system_prompt,
+                    data,
+                ],
+                config={
+                    "response_mime_type": "application/json",
+                    "response_schema": AIOCRResponse,
+                },
+            )
+            ai_response: AIOCRResponse = response.parsed
+            return ai_response
+        except ServerError as e:
+            print(f"Attempt {attempt} failed: {e}")
+            if attempt < max_retries:
+                print(
+                    f"ServerError on attempt {attempt}, Retrying in {backoff} seconds..."
+                )
+                time.sleep(backoff)
+                backoff *= 2
+            else:
+                print("All attempts failed. Exiting.")
+                raise
+        except APIError as e:
+            print(f"APIError: {e.message}")
+            raise
 
 
 def draw_on_img(url: str, boxes: list[tuple]):
@@ -461,6 +534,8 @@ def draw_on_img(url: str, boxes: list[tuple]):
 
 
 def object_face_recognition(file: dict):
+    max_retries = 3
+    backoff = 1
     media_response = httpx.get(file["file_url"])
     system_prompt = [
         dedent(f"""
@@ -474,20 +549,36 @@ def object_face_recognition(file: dict):
         data=content,
         mime_type=f"{file['file_type']}/{file['mime_type'] if file['mime_type'] != 'jpg' else 'jpeg'}",
     )
-    response = client.models.generate_content(
-        model=GEMINI_MODEL,
-        contents=[
-            *system_prompt,
-            data,
-        ],
-        config={
-            "response_mime_type": "application/json",
-            "response_schema": AIOCRResponse,
-        },
-    )
-
-    ai_response: AIOCRResponse = response.parsed
-    return ai_response
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            response = client.models.generate_content(
+                model=MODELS[attempt - 1],
+                contents=[
+                    *system_prompt,
+                    data,
+                ],
+                config={
+                    "response_mime_type": "application/json",
+                    "response_schema": AIOCRResponse,
+                },
+            )
+            ai_response: AIOCRResponse = response.parsed
+            return ai_response
+        except ServerError as e:
+            print(f"Attempt {attempt} failed: {e}")
+            if attempt < max_retries:
+                print(
+                    f"ServerError on attempt {attempt}, Retrying in {backoff} seconds..."
+                )
+                time.sleep(backoff)
+                backoff *= 2
+            else:
+                print("All attempts failed. Exiting.")
+                raise
+        except APIError as e:
+            print(f"APIError: {e.message}")
+            raise
 
 
 # Processing_option: Function_mapping
