@@ -22,7 +22,7 @@ app = FastAPI(lifespan=lifespan)
 # Allow connections from the frontend development server
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://ai-multimedia-frontend.onrender.com/"],
+    allow_origins=["https://ai-multimedia-frontend.onrender.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
