@@ -23,12 +23,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 # Allow connections from the frontend development server
-origins = [
-    "http://localhost:5173",  # Default Vite dev server
-    "http://127.0.0.1:5173",
-    "http://localhost:4173",  # Vite preview
-    "http://127.0.0.1:4173",
-]
+origins = ["https://ai-multimedia-frontend.onrender.com/"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -79,10 +74,9 @@ def chat(request: ChatRequest):
     try:
         # Convert from the request format to the format expected by gemini_chat
         chat_messages = [
-            {"role": msg.role, "text": msg.text}
-            for msg in request.messages
+            {"role": msg.role, "text": msg.text} for msg in request.messages
         ]
-        
+
         response = gemini_chat(chat_messages)
         return {"response": response}
     except Exception as e:
@@ -102,5 +96,3 @@ app.include_router(media.router, prefix="/api")
 app.include_router(settings.router, prefix="/api")
 app.include_router(ai.router, prefix="/api")
 app.include_router(search.router, prefix="/api")
-
-
