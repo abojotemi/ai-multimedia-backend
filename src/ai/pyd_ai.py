@@ -192,7 +192,11 @@ def tag_files(file: dict, tags: list):
     media_response = httpx.get(file["file_url"])
     system_prompt = [
         dedent(f"""
-                SYSTEM PROMPT: You are a professional multimedia manager. Your work is to classify/tag, name and describe the content of the {file_type} below. You should give at least 3 descriptive tags and your description of the file should be very detailed. The name should be very short and descriptive. You can use any of the existing tags below or make up yours if you deem it fit. \n{", ".join(tags)}\n. Do you understand?
+                SYSTEM PROMPT: You are a professional multimedia manager. 
+                Your work is to classify/tag, name and describe the content of the {file_type} below. 
+                You should give at least 3 descriptive tags and your description of the file should be very detailed. 
+                The name should be very short and descriptive. 
+                You can use any of the existing tags below or make up yours if you deem it fit. \n{", ".join(tags)}\n. Do you understand?
                 """),
         """MODEL: Understood.""",
     ]
@@ -538,8 +542,9 @@ def object_face_recognition(file: dict):
     backoff = 1
     media_response = httpx.get(file["file_url"])
     system_prompt = [
-        dedent(f"""
-                SYSTEM PROMPT: You are a professional at identifying objects and faces in {file['mime_type'] if file['mime_type'] != 'jpg' else 'jpeg'}s. Your work is to identify objects and faces in the file below. Do you understand?
+        dedent("""
+                SYSTEM PROMPT: You are a professional at identifying objects and faces in files.
+                Your work is to identify objects and faces in the file below as well as list them. Do you understand?
                 """),
         """MODEL: Understood.""",
     ]
