@@ -11,7 +11,6 @@ from src.ai.pyd_ai import run_gemini_chat as gemini_chat
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Server running on port 8000")
-    # Initialize MongoDB connection
     await init_mongodb("ai-multimedia")
     yield
     print("Server stopped")
@@ -23,7 +22,7 @@ app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://ai-multimedia-frontend.vercel.app/",
+        "https://ai-multimedia-frontend.vercel.app",
         "https://ai-multimedia-frontend.onrender.com",
     ],
     allow_credentials=True,

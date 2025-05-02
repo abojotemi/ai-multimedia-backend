@@ -1,4 +1,3 @@
-import asyncio
 from fastapi import APIRouter, File, UploadFile
 from datetime import datetime
 from src.models.user_stats import UserStats
@@ -10,8 +9,7 @@ from src.schemas.file import MediaResponse, TagsUpdate
 from src.service.media import media_service
 from src.utils.cloudinary_script import upload_file
 from src.models.user import User
-import os
-from uuid import uuid4
+
 from fastapi import Depends, HTTPException
 
 router = APIRouter(prefix="/media", tags=["Media"])
@@ -44,7 +42,6 @@ async def upload_files(
             thumbnail_url = file_url.split(".")[:-1] + ["jpg"]
             thumbnail_url = ".".join(thumbnail_url)
 
-        # Create response object
         mime_type = cloudinary_response.get("format", "unknown")
         user_stats: UserStats | None = await UserStats.find_one(UserStats.user_id == user.id)
         tag_desc: AIResponse = tag_files({"file_url": file_url, 'mime_type': mime_type, 'file_type':file_type if file_type != 'document' else 'application'}, user_stats.tags)
@@ -103,8 +100,7 @@ async def delete_media_item(
 @router.post("/admin/update-all-users-tags", response_model=dict)
 async def update_all_users_tags(user: User = Depends(get_current_user)):
     """Admin route to update all users' stats with tags from all their media items"""
-    # Check if user is admin (you might want to add proper admin check)
-    if user.id != "admin_user_id":  # Replace with actual admin check
+    if user.id != "admin_user_id":
         raise HTTPException(status_code=403, detail="Not authorized")
         
     result = await media_service.update_all_users_tags()
